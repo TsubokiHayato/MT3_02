@@ -5,45 +5,20 @@
 #include<vector>
 #include<Vector2.h>
 
-// 長さ
-float Length(Vector2 vector)
-{
-	
-	return std::sqrtf(vector.x * vector.x + vector.y * vector.y);
-}
-
-// 距離
-float Distance(Vector2 lhs, Vector2 rhs)
-{
-	Vector2 distance = lhs - rhs;
-	return Length(distance);
-}
-
-// 正規化
-void Normalize(Vector2 vector)
-{
-	float sq = Length(vector);
-	// 0除算は行わない
-	if (sq == 0) return;
-	vector.x /= sq;
-	vector.y /= sq;
-	
-}
-
 const char kWindowTitle[] = "学籍番号";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
-	Novice::Initialize(kWindowTitle, 1280, 720);
+	Novice::Initialize(kWindowTitle, 360, 720);
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
 
-	
-
+	Slime* slime = new Slime();
+	slime->Initialize();
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -57,7 +32,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		///
-
+		slime->Update();
 		///
 		/// ↑更新処理ここまで
 		///
@@ -65,7 +40,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓描画処理ここから
 		///
-
+		slime->Draw();
 		///
 		/// ↑描画処理ここまで
 		///

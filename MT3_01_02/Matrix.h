@@ -1,10 +1,11 @@
-#include <Novice.h>
-#include<Matrix4x4.h>
-#include<Vector3.h>
+#pragma once
 #include<cmath>
-#include <assert.h>
+#include<assert.h>
+#include<Novice.h>
+#include<vector3.h>
 
-const char kWindowTitle[] = "学籍番号";
+#include<Matrix4x4.h>
+
 
 Matrix4x4 MakeRotateXMatrix(float radian) {
 	Matrix4x4 result = {};
@@ -60,6 +61,37 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 
 }
 
+// 平行移動ベクトルから平行移動行列を作成する関数
+Matrix4x4 MakeTranslateMatrix(const Vector3& translate) {
+	Matrix4x4 translateMatrix = {};
+
+	// 単位行列に初期化し、平行移動成分を設定
+	translateMatrix.m[0][0] = 1.0f;
+	translateMatrix.m[1][1] = 1.0f;
+	translateMatrix.m[2][2] = 1.0f;
+	translateMatrix.m[3][3] = 1.0f;
+
+	translateMatrix.m[0][3] = translate.x;
+	translateMatrix.m[1][3] = translate.y;
+	translateMatrix.m[2][3] = translate.z;
+
+	return translateMatrix;
+}
+
+
+// スケールベクトルからスケール行列を作成する関数
+Matrix4x4 MakeScaleMatrix(const Vector3& scale) {
+	Matrix4x4 scaleMatrix = {};
+
+	// スケール行列を作成
+	scaleMatrix.m[0][0] = scale.x;
+	scaleMatrix.m[1][1] = scale.y;
+	scaleMatrix.m[2][2] = scale.z;
+	scaleMatrix.m[3][3] = 1.0f; // 同次座標系のため
+
+	return scaleMatrix;
+}
+
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
 
 
@@ -90,67 +122,19 @@ Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Ve
 
 	return result;
 }
-
 //透視投影行列
 Matrix4x4 MakePerspectiveMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
 	Matrix4x4 result = {};
-	result.m[0][0] = 1 / aspectRatio * (1 / (std::tan(fovY / 2)));
-	result.m[1][1] = 1 / (std::tan(fovY / 2));
+
+	float tanHalfFovY = std::tan(fovY / 2);
+	result.m[0][0] = 1 / (aspectRatio * tanHalfFovY);
+	result.m[1][1] = 1 / tanHalfFovY;
 	result.m[2][2] = farClip / (farClip - nearClip);
 	result.m[2][3] = 1;
-	result.m[3][2] = -(nearClip * farClip) / (nearClip - farClip);
-
-	return result;
-
-}
-//正射影行列
-Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip) {
-	Matrix4x4 result = {};
-	result.m[0][0] = 2 / (right - left);
-
-	result.m[1][1] = 2 / (top - bottom);
-	result.m[2][2] = 2 / (farClip - nearClip);
-
-	result.m[3][0] = (right + left) / (left - right);
-	result.m[3][1] = (top + bottom) / (bottom - top);
-	result.m[3][2] = nearClip / (nearClip - farClip);
-	result.m[3][3] = 1;
-
-	return result;
-
-}
-//viewport
-Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth) {
-	Matrix4x4 result = {};
-	result.m[0][0] = width / 2;
-	result.m[1][1] = -(height / 2);
-	result.m[2][2] = maxDepth - minDepth;
-
-	result.m[3][0] = left + (width / 2);
-	result.m[3][1] = top + (height / 2);
-	result.m[3][2] = minDepth;
-	result.m[3][3] = 1;
+	result.m[3][2] = -(nearClip * farClip) / (farClip - nearClip);
 
 	return result;
 }
-
-
-Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
-	Vector3 result = {};
-	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
-	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
-	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
-
-	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
-	assert(w != 0.0f);
-	result.x /= w;
-	result.y /= w;
-	result.z /= w;
-
-	return result;
-};
-
-
 
 
 Matrix4x4 Inverse(const Matrix4x4& m) {
@@ -226,6 +210,95 @@ Matrix4x4 Inverse(const Matrix4x4& m) {
 }
 
 
+Matrix4x4 MakeIdentity4x4() {
+
+	Matrix4x4 m = {};
+	m.m[0][0] = 1;
+	m.m[0][1] = 0;
+	m.m[0][2] = 0;
+	m.m[0][3] = 0;
+
+	m.m[1][0] = 0;
+	m.m[1][1] = 1;
+	m.m[1][2] = 0;
+	m.m[1][3] = 0;
+
+
+	m.m[2][0] = 0;
+	m.m[2][1] = 0;
+	m.m[2][2] = 1;
+	m.m[2][3] = 0;
+
+
+	m.m[3][0] = 0;
+	m.m[3][1] = 0;
+	m.m[3][2] = 0;
+	m.m[3][3] = 1;
+	return m;
+}
+
+
+//正射影行列
+Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip) {
+	Matrix4x4 result = {};
+	result.m[0][0] = 2 / (right - left);
+
+	result.m[1][1] = 2 / (top - bottom);
+	result.m[2][2] = 2 / (farClip - nearClip);
+
+	result.m[3][0] = (right + left) / (left - right);
+	result.m[3][1] = (top + bottom) / (bottom - top);
+	result.m[3][2] = nearClip / (nearClip - farClip);
+	result.m[3][3] = 1;
+
+	return result;
+
+}
+
+
+
+//viewport
+Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth) {
+	Matrix4x4 result = {};
+	result.m[0][0] = width / 2;
+	result.m[1][1] = -(height / 2);
+	result.m[2][2] = maxDepth - minDepth;
+
+	result.m[3][0] = left + (width / 2);
+	result.m[3][1] = top + (height / 2);
+	result.m[3][2] = minDepth;
+	result.m[3][3] = 1;
+
+	return result;
+}
+
+
+
+Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
+	Vector3 result = {};
+	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
+	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
+	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
+
+	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
+	assert(w != 0.0f);
+	result.x /= w;
+	result.y /= w;
+	result.z /= w;
+
+	return result;
+};
+
+
+Vector3 Cross(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result.x = v1.y * v2.z - v1.z * v2.y;
+	result.y = v1.z * v2.x - v1.x * v2.z;
+	result.z = v1.x * v2.y - v1.y * v2.x;
+	return result;
+}
+
+
 
 static const int kRowHeight = 20;
 static const int kRowWidth = 60;
@@ -240,110 +313,4 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix) {
 
 		}
 	}
-}
-
-Vector3 Cross(const Vector3& v1, const Vector3& v2) {
-	Vector3 result;
-	result.x = v1.y * v2.z - v1.z * v2.y;
-	result.y= v1.z * v2.x - v1.x * v2.z;
-	result.z = v1.x* v2.y - v1.y * v2.x;
-	return result;
-}
-
-// Windowsアプリでのエントリーポイント(main関数)
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-
-	// ライブラリの初期化
-	Novice::Initialize(kWindowTitle, 1280, 720);
-
-	// キー入力結果を受け取る箱
-	char keys[256] = { 0 };
-	char preKeys[256] = { 0 };
-
-	Vector3 rotate = {};
-	Vector3 translate{};
-
-	Vector3 cameraPosition{ 0,0,-300.0f };
-
-	Vector3 kLocalVertices[3] = { {0,0},{-10,-10},{10,-10} };
-
-	Vector3 v1{ 1.2f,-3.9f,2.5f };
-	Vector3 v2{ 2.8f,0.4f,-1.3f };
-	Vector3 cross = Cross(v1, v2);
-
-
-	// ウィンドウの×ボタンが押されるまでループ
-	while (Novice::ProcessMessage() == 0) {
-		// フレームの開始
-		Novice::BeginFrame();
-
-		// キー入力を受け取る
-		memcpy(preKeys, keys, 256);
-		Novice::GetHitKeyStateAll(keys);
-
-		///
-		/// ↓更新処理ここから
-		///
-
-		if (keys[DIK_W]) {
-
-			translate.z++;
-
-		} else if (keys[DIK_S]) {
-
-			translate.z--;
-
-		} else if (keys[DIK_A]) {
-
-			translate.x--;
-
-		} else if (keys[DIK_D]) {
-
-			translate.x++;
-		}
-
-		rotate.y+=0.2f;
-
-		Matrix4x4 worldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, rotate, translate);
-		Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, cameraPosition);
-		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
-		Matrix4x4 projectionMatrix = MakePerspectiveMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
-		Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
-		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, 1280.0f, 720.0f, 0.0f, 1.0f);
-		Vector3 screenVertices[3];
-		for (uint32_t i = 0; i < 3; ++i) {
-			Vector3 ndcVertex = Transform(kLocalVertices[i], worldViewProjectionMatrix);
-			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
-		}
-
-
-		///
-		/// ↑更新処理ここまで
-		///
-
-		///
-		/// ↓描画処理ここから
-		///
-
-		Novice::ScreenPrintf(0, 0, "%f  %f  %f", cross.x, cross.y, cross.z);
-		Novice::DrawTriangle(
-			int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y),
-			int(screenVertices[2].x), int(screenVertices[2].y), RED, kFillModeSolid
-		);
-		///
-		/// ↑描画処理ここまで
-		///
-
-		// フレームの終了
-		Novice::EndFrame();
-
-		// ESCキーが押されたらループを抜ける
-		if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
-			break;
-		}
-	}
-
-	// ライブラリの終了
-	Novice::Finalize();
-	return 0;
 }

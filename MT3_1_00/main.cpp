@@ -5,17 +5,31 @@
 
 const char kWindowTitle[] = "学籍番号";
 
-//透視投影行列
+////透視投影行列
+//Matrix4x4 MakePerspectiveMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
+//	Matrix4x4 result = {};
+//	result.m[0][0] = 1 / aspectRatio * (1 / (std::tan(fovY / 2)));
+//	result.m[1][1] = 1 / (std::tan(fovY / 2));
+//	result.m[2][2] = farClip / (farClip - nearClip);
+//	result.m[2][3] = 1;
+//	result.m[3][2] = -(nearClip * farClip) / (nearClip - farClip);
+//
+//	return result;
+//
+//}
+// 
+// 
 Matrix4x4 MakePerspectiveMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
 	Matrix4x4 result = {};
-	result.m[0][0] = 1 / aspectRatio * (1 / (std::tan(fovY / 2)));
-	result.m[1][1] = 1 / (std::tan(fovY / 2));
+
+	float tanHalfFovY = std::tan(fovY / 2);
+	result.m[0][0] = 1 / (aspectRatio * tanHalfFovY);
+	result.m[1][1] = 1 / tanHalfFovY;
 	result.m[2][2] = farClip / (farClip - nearClip);
 	result.m[2][3] = 1;
-	result.m[3][2] = -(nearClip * farClip) / (nearClip - farClip);
+	result.m[3][2] = -(nearClip * farClip) / (farClip - nearClip);
 
 	return result;
-
 }
 //正射影行列
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip) {
