@@ -2,6 +2,13 @@
 #include<cmath>
 #include <assert.h>
 
+
+#define NOMINMAX
+#include <iostream>
+#include <algorithm>
+
+
+
 #include<Matrix.h>
 
 #include<ImGuiManager.h>
@@ -11,6 +18,7 @@
 //クライアント領域のサイズ
 const int32_t kClientWidth = 1280;
 const int32_t kClientHeight = 720;
+const char kWindowTitle[] = "MT";
 
 struct TransformSRT {
 	Vector3 scale;
@@ -18,16 +26,31 @@ struct TransformSRT {
 	Vector3 translate;
 };
 
-
-const char kWindowTitle[] = "学籍番号";
-
-
-
 struct  Sphere
 {
 	Vector3 center;
 	float radius;
 };
+
+struct  Line
+{
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分ベクトル
+};
+
+
+struct  Ray
+{
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分ベクトル
+};
+
+struct  Segment
+{
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分ベクトル
+};
+
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 
@@ -66,9 +89,9 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 }
 
 
-void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+void DrawSphere(Sphere sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 
-	const uint32_t kSubdivision = 32;
+	const uint32_t kSubdivision = 8;
 
 
 	float pi = PI;
@@ -88,13 +111,20 @@ void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewport
 
 			Vector3 A, B, C;
 
+
 			//A
-			A = { cos(lat) * cos(lon),sin(lat),cos(lat) * sin(lon) };
+			A = {sphere.center.x+sphere.radius* cos(lat) * cos(lon),
+				sphere.center.y + sphere.radius * sin(lat),
+				sphere.center.z + sphere.radius * cos(lat) * sin(lon) };
 			//B
-			B = { cos(lat + kLatEvery) * cos(lon),sin(lat + kLatEvery),cos(lat + kLatEvery) * sin(lon) };
+			B = { sphere.center.x + sphere.radius * cos(lat + kLatEvery) * cos(lon),
+				sphere.center.y + sphere.radius * sin(lat + kLatEvery)
+				,sphere.center.z + sphere.radius * cos(lat + kLatEvery) * sin(lon) };
 			// 
 			//C
-			C = { cos(lat) * cos(lon + kLonEvery),sin(lat),cos(lat) * sin(lon + kLonEvery) };
+			C = { sphere.center.x + sphere.radius * cos(lat) * cos(lon + kLonEvery),
+				sphere.center.y + sphere.radius * sin(lat),
+				sphere.center.z + sphere.radius * cos(lat) * sin(lon + kLonEvery) };
 
 			A = Transform(A, Multiply(viewProjectionMatrix, viewportMatrix));
 			B = Transform(B, Multiply(viewProjectionMatrix, viewportMatrix));
@@ -112,6 +142,26 @@ void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewport
 
 
 }
+
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+
+	// v1 を v2 に正射影する
+	float dotProduct = v1.dot(v2);
+	float v2LengthSquared = v2.dot(v2);
+	return v2.scale(dotProduct / v2LengthSquared);
+
+}
+
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 segmentVec = segment.diff;
+	Vector3 pointToOrigin = Subtract(point, segment.origin);
+	float t = Dot(pointToOrigin, segmentVec) / Dot(segmentVec, segmentVec);
+
+	Vector3 a = Add(segment.origin, Multiply(t, segmentVec));
+
+	return a;
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -121,6 +171,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
+
+	Segment segment{ {-2.0f,-1.0f,0.0f},{3.0f,2.0f,2.0f} };
+	Vector3 point{ -1.5f,0.6f,0.6f };
+
+
 
 	Vector3 rotate = {};
 	Vector3 translate{};
@@ -142,6 +197,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		
+
+
+		Vector3 project = Project(Subtract(point, segment.origin), segment.diff);
+		Vector3 closestPoint = ClosestPoint(point, segment);
+		
+		Sphere pointSphere{ point,0.01f };
+		Sphere closestPointSphere{ closestPoint,0.01f };
+
+		
+
+
 		 // 更新
 		Matrix4x4 worldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, rotate, translate);
 		Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraScale,cameraRotate, cameraPosition);
@@ -150,13 +217,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, 1280.0f, 720.0f, 0.0f, 1.0f);
 
 
-		
+		Vector3 start = Transform(Transform(segment.origin, worldViewProjectionMatrix), viewportMatrix);
+		Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), worldViewProjectionMatrix), viewportMatrix);
+
+
+
 		ImGui::DragFloat3("cameraPos", &cameraPosition.x, 0.01f, -10.0f, 10.0f);
 		ImGui::DragFloat3("cameraScale", &cameraScale.x, 0.01f, -10.0f, 10.0f);
 		ImGui::DragFloat3("cameraRotate", &cameraRotate.x, 0.01f, -10.0f, 10.0f);
 		
 
-
+		ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 
 		///
 		/// ↑更新処理ここまで
@@ -165,11 +236,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓描画処理ここから
 		///
+		
+		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
+
 		 // グリッドの描画
 		DrawGrid(worldViewProjectionMatrix, viewportMatrix);
 
-		//
-		DrawSphere(worldViewProjectionMatrix, viewportMatrix, 0xffffffff);
+		
+		DrawSphere(pointSphere,worldViewProjectionMatrix, viewportMatrix, RED);
+		DrawSphere(closestPointSphere, worldViewProjectionMatrix, viewportMatrix, BLACK);
 		///
 		/// ↑描画処理ここまで
 		///
