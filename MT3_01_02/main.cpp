@@ -65,10 +65,9 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 
 }
 
+void DrawSphere(Sphere sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 
-void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-
-	const uint32_t kSubdivision = 32;
+	const uint32_t kSubdivision = 8;
 
 
 	float pi = PI;
@@ -88,13 +87,20 @@ void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewport
 
 			Vector3 A, B, C;
 
+
 			//A
-			A = { cos(lat) * cos(lon),sin(lat),cos(lat) * sin(lon) };
+			A = { sphere.center.x + sphere.radius * cos(lat) * cos(lon),
+				sphere.center.y + sphere.radius * sin(lat),
+				sphere.center.z + sphere.radius * cos(lat) * sin(lon) };
 			//B
-			B = { cos(lat + kLatEvery) * cos(lon),sin(lat + kLatEvery),cos(lat + kLatEvery) * sin(lon) };
+			B = { sphere.center.x + sphere.radius * cos(lat + kLatEvery) * cos(lon),
+				sphere.center.y + sphere.radius * sin(lat + kLatEvery)
+				,sphere.center.z + sphere.radius * cos(lat + kLatEvery) * sin(lon) };
 			// 
 			//C
-			C = { cos(lat) * cos(lon + kLonEvery),sin(lat),cos(lat) * sin(lon + kLonEvery) };
+			C = { sphere.center.x + sphere.radius * cos(lat) * cos(lon + kLonEvery),
+				sphere.center.y + sphere.radius * sin(lat),
+				sphere.center.z + sphere.radius * cos(lat) * sin(lon + kLonEvery) };
 
 			A = Transform(A, Multiply(viewProjectionMatrix, viewportMatrix));
 			B = Transform(B, Multiply(viewProjectionMatrix, viewportMatrix));
@@ -105,12 +111,24 @@ void DrawSphere(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewport
 
 			Novice::DrawLine((int)A.x, (int)A.y, (int)B.x, (int)B.y, color);
 			Novice::DrawLine((int)A.x, (int)A.y, (int)C.x, (int)C.y, color);
-			
+
 
 		}
 	}
 
 
+}
+
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+
+	float distance = Length(s2.center - s1.center);
+
+	if (distance <= s1.radius + s2.radius) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -129,6 +147,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraScale{ 1.0f, 1.0f, 1.0f };
 	Vector3 cameraRotate{ 2.6f,0.0f,0.0f };
 
+	Sphere sphere[2];
+	sphere[0].center = {};
+	sphere[0].radius = 1.0f;
+
+
+	sphere[1].center = {};
+	sphere[1].radius = 0.5f;
+
+	bool isCollision;
+
+	unsigned int color = 0xffffffff;
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
 		// フレームの開始
@@ -149,13 +178,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(cameraMatrix, projectionMatrix));
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, 1280.0f, 720.0f, 0.0f, 1.0f);
 
+		isCollision = IsCollision(sphere[0], sphere[1]);
 
+		if (isCollision) {
+			color = 0x00ffffff;
+		}
+		else {
+			color = 0xffffffff;
+		}
 		
 		ImGui::DragFloat3("cameraPos", &cameraPosition.x, 0.01f, -10.0f, 10.0f);
 		ImGui::DragFloat3("cameraScale", &cameraScale.x, 0.01f, -10.0f, 10.0f);
 		ImGui::DragFloat3("cameraRotate", &cameraRotate.x, 0.01f, -10.0f, 10.0f);
 		
 
+		ImGui::DragFloat3("sphre[0].pos", &sphere[0].center.x, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat3("sphre[1].pos", &sphere[1].center.x, 0.01f, -10.0f, 10.0f);
 
 
 		///
@@ -165,11 +203,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓描画処理ここから
 		///
+	
 		 // グリッドの描画
 		DrawGrid(worldViewProjectionMatrix, viewportMatrix);
 
 		//
-		DrawSphere(worldViewProjectionMatrix, viewportMatrix, 0xffffffff);
+		DrawSphere(sphere[0], worldViewProjectionMatrix, viewportMatrix, 0xffffffff);
+		DrawSphere(sphere[1], worldViewProjectionMatrix, viewportMatrix, color);
 		///
 		/// ↑描画処理ここまで
 		///
