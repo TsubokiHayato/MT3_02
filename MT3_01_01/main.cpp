@@ -267,8 +267,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Vector3 kLocalVertices[3] = { {0,0},{-10,-10},{10,-10} };
 
-	Vector3 v1{ 1.2f,-3.9f,2.5f };
-	Vector3 v2{ 2.8f,0.4f,-1.3f };
+	Vector3 v1{ 3.0f,0.0f,-2.0f };
+	Vector3 v2{ 5.0f,3.0f,2.0f };
 	Vector3 cross = Cross(v1, v2);
 
 
